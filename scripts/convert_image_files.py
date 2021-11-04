@@ -6,7 +6,7 @@ import os, sys
 from pgmagick import Image
 import shutil
 
-from utils import get_files
+from utils import get_files, get_ext_dict
 from config import Config
 
 if __name__ == "__main__":
@@ -16,20 +16,14 @@ if __name__ == "__main__":
     assert(outputfolder)
 
     os.chdir(Config.SOURCE)
-    l, d, ignored = get_files('.')
-    print("ignored", len(ignored))
-    print(ignored)
-
-    total_files = 0
-    for e in d:
-        length = len(d[e])
-        print(e, length)
-        total_files += length
+    matched, ignored = get_files('.')
+    print("extensions of ignored files: ", get_ext_dict(ignored))
 
     errors = 0
     error_msg = list()
+    total_files = len(matched)
     progress = 0
-    for pathname in l:
+    for pathname in matched:
         progress += 1
 
         assert(os.path.exists(pathname))

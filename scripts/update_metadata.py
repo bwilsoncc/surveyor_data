@@ -5,7 +5,7 @@
 #
 import os
 import osgeo.gdal as gdal
-from utils import get_files
+from utils import get_files, get_ext_dict
 from datetime import datetime
 from config import Config
 
@@ -22,27 +22,20 @@ if __name__ == "__main__":
 
     source = Config.SOURCE
     os.chdir(source)
-    l, d, ignored = get_files('.')
-    print("ignored", len(ignored))
-    print(ignored)
+    matched, ignored = get_files('.')
+    print("extensions of ignored files: ", get_ext_dict(ignored))
 
     format = 'PDF'
     driver = gdal.GetDriverByName(format)
     print(driver.LongName)
 
-    total_files = 0
-    for e in d:
-        length = len(d[e])
-        print(e, length)
-        total_files += length
-
     now = datetime.now()
 
-    progress = 0
     errors = 0
     error_msg = list()
-
-    for pathname in l:
+    total_files = len(matched)
+    progress = 0
+    for pathname in matched:
         progress += 1
         fullpath = os.path.join(source, pathname)
         assert(os.path.exists(pathname))
