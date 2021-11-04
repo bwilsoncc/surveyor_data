@@ -66,7 +66,7 @@ conda activate gdal
 
 My image files are all currently found in 
 /cifs/cc-files01/Applications/SurveyorData/survey/Scanned\ Surveys/AA_INDEXED_SURVEYS
-so I just embed that in utils.py.
+so I just embed that in scripts/config.py.
 
 ## Workflow
 
