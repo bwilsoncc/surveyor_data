@@ -1,31 +1,40 @@
-#survey
+=surveyor_data
 
-As usual I am co-opting this folder which currently contains a shapefile.
-I will probably just delete it since it's been around since 2006.
+## Overview
 
-There are a bunch of files out there called "surveys" containing images in different formats.
+I want all survey documents to show up in PDF format in our web applications.
+They exist in various formats including TIFF, JPEG, and PDF right now.
+
 This project will pull them all into a unified PDF format.
+It also writes a bit of metadata to each PDF file.
 
 Once that's done, I will need to update links to point to the new files.
 
-The scripts/ folder will contain Python code
+The scripts/ folder contains the Python code
 
 ## Method
 
-I am using graphicsmagick because I can run it from Python and because
-it produces the smallest PDF files. The other library I tried was GDAL.
-It generates PDFs that are 4x the size of the TIFF file so it's doing
-something extra in there.
+I ended up using two passes, first I try to use graphicsmagick 
+to convert files to PDF because generally it produced smaller files.
 
-I need to use GDAL to set up the metadata on each PDF once they are created and/or copied.
+Then I wanted to write some metadata and the easiest way was using GDAL.
+
+Since a few files could not be converted with graphicsmagick, there
+is also some code to convert those files with GDAL.
 
 ## Set up (Linux only)
 
-Create a conda environment for Python 3 and install the packages we need and activate it.
-The support for this on Windows is weak so I'm doing Linux today. I mount the filesystem
+I tried using Windows at first but could not convince the packages to install there.
+
+I tried installing both graphicsmagick and GDAL in one conda environment and failed. So I use two!
+pgmagick and gdal fight one another and if you need to use a newer copy of either
+you should create two separate conda environments so that they can live peacefully.
+I think if you are happy using older code you could put them both in one environment.
+
+The files all live in a Windows fileserver so I mount the filesystem
 with all the picture files and use a remote session from VSCode to debug and test.
 
-I am not sure if I need to do the apt installation, try without.
+I am not sure if I need to do this apt installation, try without.
 
 ```bash
 sudo apt install g++ libgraphicsmagick++1-dev libboost-python-dev
@@ -34,26 +43,37 @@ sudo apt install g++ libgraphicsmagick++1-dev libboost-python-dev
 ```bash
 conda update --all
 conda config --add channels conda-forge
+```
+
+For the first script, create a graphicsmagick environment called 'magick'.
+The autopep8 package is for VSCode.
+
+```bash
 conda create -n magick python autopep8 boost
 conda activate magick
 pip install pgmagick
 ```
 
+For the second script, create a GDAL environment called 'gdal'.
+I wanted to do some testing in Jupyter so I added ipykernel to this one.
+
 ```bash
-conda create -n gdal python autopep8 gdal
+conda create -n gdal python autopep8 gdal ipykernel
 conda activate gdal
 ```
 
-Note that pgmagick and gdal fight one another and if you need to use a newer copy of either
-you should create two separate conda environments so that they can live peacefully.
+## Source image files
 
-## Files
-
-The image files are all currently found in 
-/cifs/cc-files01/Applications/SurveyorData/survey/Scanned\ Surveys/AA_INDEXED_SURVEYS/Subdivisions_by_Name_All
-so I just embed that in the code.
+My image files are all currently found in 
+/cifs/cc-files01/Applications/SurveyorData/survey/Scanned\ Surveys/AA_INDEXED_SURVEYS
+so I just embed that in utils.py.
 
 ## Workflow
 
-1 Run convert_image_files.py to convert and or copy files to PDF foirmat
-2 Run update_metadata.py to fix up the metadata
+1 Set conda environment to 'magick'
+
+2 Run convert_image_files.py to convert and or copy files to PDF format
+
+3 Set conda environment to 'gdal'
+
+4 Run update_metadata.py to fix up the metadata and copy any missing files from #2.
