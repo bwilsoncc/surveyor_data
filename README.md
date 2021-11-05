@@ -30,6 +30,7 @@ I tried installing both graphicsmagick and GDAL in one conda environment and fai
 pgmagick and gdal fight one another and if you need to use a newer copy of either
 you should create two separate conda environments so that they can live peacefully.
 I think if you are happy using older code you could put them both in one environment.
+Note that pgmagick builds from source, so installing it is a time-consuming process especially when you attempt the build and find out that gdal and pgmagick are not compatible.
 
 The files all live in a Windows fileserver so I mount the filesystem
 with all the picture files and use a remote session from VSCode to debug and test.
@@ -47,26 +48,27 @@ conda config --add channels conda-forge
 
 For the first script, create a graphicsmagick environment called 'magick'.
 The autopep8 package is for VSCode.
+I wanted to do some testing in Jupyter so I added ipykernel;
+ipykernel is a dependency of arcgis so it's in the arcgis env too.
 
 ```bash
-conda create -n magick python autopep8 boost
+conda create -n magick python autopep8 boost ipykernel
 conda activate magick
 pip install pgmagick
 ```
 
-For the second script, create a GDAL environment called 'gdal'.
-I wanted to do some testing in Jupyter so I added ipykernel to this one.
+For the second script, create an environment called 'arcgis'.
 
 ```bash
-conda create -n gdal python autopep8 gdal ipykernel
-conda activate gdal
+conda create -n arcgis python autopep8 gdal arcgis
+conda activate arcgis
 ```
 
 ## Source image files
 
 My image files are all currently found in 
 /cifs/cc-files01/Applications/SurveyorData/survey/Scanned\ Surveys/AA_INDEXED_SURVEYS
-so I just embed that in scripts/config.py.
+so I just set that in scripts/config.py.
 
 ## Workflow
 
