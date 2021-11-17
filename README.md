@@ -14,54 +14,40 @@ The scripts/ folder contains the Python code
 
 ## Method
 
-I ended up using two passes, first I try to use graphicsmagick 
+I ended up using two passes, first I try to use ImageMagick 
 to convert files to PDF because generally it produced smaller files.
 
 Then I wanted to write some metadata and the easiest way was using GDAL.
 
-Since a few files could not be converted with graphicsmagick, there
-is also some code to convert those files with GDAL.
+Since a few files could not be converted in the first pass, there
+is also some code to try to convert those files with GDAL.
 
-## Set up (Linux only)
+## Failure to set up (Linux only)
 
-I tried using Windows at first but could not convince the packages to install there.
+I tried doing all processing on Linux because I could use graphicsmagick and the pgmagick python module there.
+I gave up eventually because graphicsmagick and GDAL can't install in one conda environment.
+Then I needed arcpy to access some Esri things and that is a total loss on Linux. It's hopelessly broken.
 
-I tried installing both graphicsmagick and GDAL in one conda environment and failed. So I use two!
-pgmagick and gdal fight one another and if you need to use a newer copy of either
-you should create two separate conda environments so that they can live peacefully.
-I think if you are happy using older code you could put them both in one environment.
-Note that pgmagick builds from source, so installing it is a time-consuming process especially when you attempt the build and find out that gdal and pgmagick are not compatible.
+Hence I deleted the instructions for Linux. Press on.
 
-The files all live in a Windows fileserver so I mount the filesystem
-with all the picture files and use a remote session from VSCode to debug and test.
+## Set up on Windows
 
-I am not sure if I need to do this apt installation, try without.
+I had to install the full Windows ImageMagick package and I made sure "magick" is on the command PATH
+so in convert_image_files.py, it can just call magick via subprocess.
 
-```bash
-sudo apt install g++ libgraphicsmagick++1-dev libboost-python-dev
-```
+I needed to use arcpy and let's face it, co-workers might benefit from being able to run this.
+
+Every attempt today at creating a clean environment failed today. (11/5/21)
+Falling back to cloning. Geez.
 
 ```bash
 conda update --all
-conda config --add channels conda-forge
-```
+conda config --remove channels conda-forge
+conda config --add channels esri
 
-For the first script, create a graphicsmagick environment called 'magick'.
-The autopep8 package is for VSCode.
-I wanted to do some testing in Jupyter so I added ipykernel;
-ipykernel is a dependency of arcgis so it's in the arcgis env too.
-
-```bash
-conda create -n magick python autopep8 boost ipykernel
+conda create -n magick --clone arcgispro-py3
 conda activate magick
-pip install pgmagick
-```
-
-For the second script, create an environment called 'arcgis'.
-
-```bash
-conda create -n arcgis python autopep8 gdal arcgis
-conda activate arcgis
+conda install autopep8
 ```
 
 ## Source image files

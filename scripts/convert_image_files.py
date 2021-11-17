@@ -2,12 +2,15 @@
 #
 #  Convert images to PDF format.
 #
+#  No special packages are needed here, but you have to have
+#  ImageMagick installed and 'magick' on the PATH.
 import os, sys
-from pgmagick import Image
+import subprocess
 import shutil
-
 from utils import get_files, get_ext_dict
 from config import Config
+
+magick = "magick" # executable for ImageMagick on Windows, I can't put a full path here; it has a version number in it, oy! :-)
 
 if __name__ == "__main__":
 
@@ -36,8 +39,8 @@ if __name__ == "__main__":
             os.makedirs(outputpath)
 
         # I find it very difficult to leave trailing spaces
-        # on filenames, it's just weird to have those.
-        # and yet it's what I do
+        # on filenames, it's just weird to have those
+        # and yet it's what I do. Consistency wins again.
         outputfile = os.path.join(outputpath, f + '.pdf')
 #        stripped = f.strip()
 #        if f != stripped:
@@ -62,15 +65,19 @@ if __name__ == "__main__":
 
         print("%d/%d Converting \"%s\"." % (progress, total_files, pathname))
         try:
-            im = Image()
             # ignore the message about this tag
             # I have not gotten this to work but
             # the CreateCopy in update_metadata.py does fix it
-            im.defineValue("Tiff", "ignore-tags=32934")
-            im.read(pathname)
-            im.write(outputfile)
-        except Exception as e:
-            print(">>>--------ERROR--------->", e)
+            cmd = [magick, "convert", "-define", "Tiff:ignore-tags=32934", pathname, outputfile]
+            retcode = subprocess.call(cmd, shell=True)
+            if retcode < 0:
+                msg = "magick terminated with %d" % -retcode
+                print(msg)
+                error_msg.append("\"%s\" \"%s\"" % (outputfile, msg))
+            #else:
+            #    print("Child returned", retcode)
+        except OSError as e:
+            print(">>>----[ERROR]---->", e)
             error_msg.append("\"%s\" \"%s\"" % (outputfile, e))
             errors += 1
             continue

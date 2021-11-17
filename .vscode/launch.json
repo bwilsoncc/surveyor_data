@@ -12,6 +12,25 @@
             "console": "internalConsole",
             "envFile": "${workspaceFolder}/.env"
         },
+        {   
+            "name": "Python: Flask",
+            "type": "python",
+            "request": "launch",
+            "module": "flask",
+            "cwd": "${workspaceFolder}/popup_content",
+            "env": {
+                "FLASK_APP": "app.py", // a single py file here or a module name, typically "app"
+                "FLASK_ENV": "development",
+                "FLASK_DEBUG": "0"
+            },
+            "args": [
+                "run",
+                "--no-debugger",
+                "--no-reload"
+            ],
+            "jinja": "true",
+            "console": "internalConsole" // I had to start using this to avoid "launcher timed out" failures in Windows 10.
+        },        
         {
             "type": "chrome",
             "request": "launch",
