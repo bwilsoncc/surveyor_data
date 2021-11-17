@@ -1,0 +1,17 @@
+FROM debian:11
+RUN adduser flask
+
+# Better to install miniconda than the system package which is bulky and out of date.
+WORKDIR /home/flask
+ADD --chown=flask https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh .
+
+USER flask
+# Run with -b for batch mode
+RUN sh Miniconda3-latest-Linux-x86_64.sh -b . && \
+    rm -f Miniconda3-latest-Linux-x86_64.sh
+
+# Set PATH so we use the conda python instead of system
+ENV PATH /home/flask/bin:/home/flask/miniconda3/bin:${PATH}
+
+# This all goes into the base environment, okay for docker.
+RUN conda install -c conda-forge python flask flask-bootstrap

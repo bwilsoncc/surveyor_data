@@ -1,0 +1,32 @@
+version: '3.7'
+
+networks:
+  proxy_net:
+    name: proxy_net
+    external: true
+
+services:
+  surveyor:
+    build:
+      context: .
+      dockerfile: Dockerfile.flaskapp
+    image: flaskapp:latest
+    environment:
+      FLASK_APP: app
+      FLASK_ENV: production
+      FLASK_RUN_HOST: 0.0.0.0
+      FLASK_RUN_PORT: 5000
+      VIRTUAL_HOST: webforms.co.clatsop.or.us
+      VIRTUAL_PORT: 5000
+      LETSENCRYPT_HOST: webforms.co.clatsop.or.us
+      LETSENCRYPT_MAIL: bwilson@co.clatsop.or.us
+    command: ["/home/flask/miniconda3/bin/flask", "run"]
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+      - .:/home/flexlm/app:ro
+      - ./config:/home/flexlm/config:ro
+    networks:
+      proxy_net:
+        aliases:
+          - webforms

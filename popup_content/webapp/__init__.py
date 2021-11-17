@@ -1,6 +1,7 @@
 import logging
 from flask import Flask, render_template
-from .extensions import bootstrap, debug_toolbar
+from .extensions import debug_toolbar
+from .extensions import bootstrap
 #from .extensions import celery
 #
 # This is the "Simple Template" so we're using flask_bootstrap
@@ -40,4 +41,3 @@ def create_app(configuration):
     return app
 
 # That's all!
-
