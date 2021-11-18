@@ -12,21 +12,28 @@ services:
       dockerfile: Dockerfile.flaskapp
     image: flaskapp:latest
     environment:
-      FLASK_APP: app
+      PYTHONPATH: /srv
+      FLASK_APP: app.py
       FLASK_ENV: production
       FLASK_RUN_HOST: 0.0.0.0
       FLASK_RUN_PORT: 5000
       VIRTUAL_HOST: webforms.co.clatsop.or.us
       VIRTUAL_PORT: 5000
+      NETWORK_ACCESS: internal
       LETSENCRYPT_HOST: webforms.co.clatsop.or.us
       LETSENCRYPT_MAIL: bwilson@co.clatsop.or.us
-    command: ["/home/flask/miniconda3/bin/flask", "run"]
+    command: ["flask", "run"]
     volumes:
+      - .:/srv
       - /etc/localtime:/etc/localtime:ro
       - /etc/timezone:/etc/timezone:ro
-      - .:/home/flexlm/app:ro
-      - ./config:/home/flexlm/config:ro
+    user: app
     networks:
       proxy_net:
         aliases:
           - webforms
+    # proxy will not work without this
+    ports:
+      - "5000:5000"
+    # for compose
+    restart: unless-stopped

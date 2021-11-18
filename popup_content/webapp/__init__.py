@@ -1,8 +1,8 @@
 import logging
 from flask import Flask, render_template
-from .extensions import debug_toolbar
 from .extensions import bootstrap
 #from .extensions import celery
+#from .extensions import debug_toolbar
 #
 # This is the "Simple Template" so we're using flask_bootstrap
 # instead of asset bundles. This gives us flask 3.x which is old,
@@ -29,7 +29,7 @@ def create_app(configuration):
     app = Flask(__name__)
     app.config.from_object(configuration)
     bootstrap.init_app(app)
-    debug_toolbar.init_app(app)
+    #debug_toolbar.init_app(app)
     #celery.init_app(app)
     #assets_env.init_app(app)
 
