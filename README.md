@@ -12,6 +12,10 @@ Once that's done, I will need to update links to point to the new files.
 
 The scripts/ folder contains the Python code
 
+## History
+
+2021-12-16 Final run of scripts to create finished files.
+
 ## Method
 
 I ended up using two passes, first I try to use ImageMagick 
@@ -34,20 +38,33 @@ Hence I deleted the instructions for Linux. Press on.
 
 I had to install the full Windows ImageMagick package and I made sure "magick" is on the command PATH
 so in convert_image_files.py, it can just call magick via subprocess.
-
-I needed to use arcpy and let's face it, co-workers might benefit from being able to run this.
+Using magick in a conda module did not work.
 
 Every attempt today at creating a clean environment failed today. (11/5/21)
 Falling back to cloning. Geez.
+
+I have to have separate environments on Windows, one for Esri and one for GDAL.
+
+FIXME: TODAY 12/21/21 I could not use the 'surveys' but the one for 'arcgis_tools' worked. ?? 
 
 ```bash
 conda update --all
 conda config --remove channels conda-forge
 conda config --add channels esri
 
-conda create -n magick --clone arcgispro-py3
-conda activate magick
-conda install autopep8
+conda create -n surveys arcgis pandas sqlalchemy pyodbc requests
+conda activate surveys
+conda install autopep8 ipykernel
+```
+
+Today I had to edit my ~/bin/condarc file to get rid of the esri channel, not sure why
+
+```bash
+conda config --add channels conda-forge
+conda config --remove channels esri
+conda create -n gdal gdal
+conda activate gdal
+conda install autopep8 ipykernel
 ```
 
 ## Source image files
@@ -65,3 +82,19 @@ so I just set that in scripts/config.py.
 3 Set conda environment to 'gdal'
 
 4 Run update_metadata.py to fix up the metadata and copy any missing files from #2.
+
+5 Fix the database table Clatsop.dbo.SurveyImages
+
+This file is versioned. The easiest way to do this step is to use
+"Calculate Field" inside ArcPro. Here is some python.
+
+```python
+import os
+def fn(file):
+  ext=['.jpg', '.tif', 'tiff']
+  for e in ext:
+      if file.lower().endswith(e):
+          f = file[-len(e)]
+          return f += '.pdf'
+  return file
+```

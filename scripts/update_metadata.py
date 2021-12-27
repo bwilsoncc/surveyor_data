@@ -1,7 +1,11 @@
 #!/usr/bin/env -S conda run -n gdal
 #
-#  Update the metadata on each PDF file.
+#  Update the metadata on each converted file.
 #  If any files are missing, first try to create them with GDAL.
+#
+#  2021-12-16 
+#  I used to write metadata to every file but quit doing that today.
+#  See "update" variable to change it back
 #
 import os
 import osgeo.gdal as gdal
@@ -35,6 +39,9 @@ if __name__ == "__main__":
     error_msg = list()
     total_files = len(matched)
     progress = 0
+    converted = 0
+    copied = 0
+    updated = 0
     for pathname in matched:
         progress += 1
         fullpath = os.path.join(source, pathname)
@@ -49,22 +56,27 @@ if __name__ == "__main__":
 
         # If you write nonstandard headers here then GDAL will create an *.aux.xml file
 
+        update = True
+
         my_metadata = {
             'TITLE': f, 
-            'SUBJECT': 'File converted from "%s"' % fullpath,
-            'PRODUCER': 'Clatsop County GIS Services <gisinfo@co.clatsop.or.us>',
+            'SUBJECT': 'File converted from "%s"' % fullpath
         }
 
         if e.lower() == '.pdf': 
             # This is an existing copy of the PDF
+            # Don't update it
             my_metadata = {
                 'TITLE': f, 
-                'SUBJECT': 'File copied from "%s"' % fullpath,
-                'PRODUCER': 'Clatsop County GIS Services <gisinfo@co.clatsop.or.us>',
+                'SUBJECT': 'File copied from "%s"' % fullpath
             }
+            update = False
+            copied += 1
+        else:
+            converted += 1
 
-        # Open file in UPDATE mode and fix up the metadata.
         outputfile = os.path.join(outputpath, f + '.pdf')
+
         if not os.path.exists(outputfile):
             # ImageMagick failed to convert this doc
             # so let's try again with GDAL.
@@ -74,22 +86,26 @@ if __name__ == "__main__":
         elif ONLY_NEW:
             continue
 
-        ds = gdal.Open(outputfile, gdal.GA_Update)
-        if not ds:
-            # If GDAL also fails to copy, you'll get this error.
-            errors += 1
-            error_msg.append("Error: no file \"%s\"." % outputfile)
-            continue
+        if update:
+            # Open file in UPDATE mode and fix up the metadata.       
+            ds = gdal.Open(outputfile, gdal.GA_Update)
+            if not ds:
+                # If GDAL also fails to copy, you'll get this error.
+                errors += 1
+                error_msg.append("Error: no file \"%s\"." % outputfile)
+                continue
 
-        old_metadata = ds.GetMetadata()
-        
-        ds.SetMetadata(my_metadata)
-        del ds
-        print("%d/%d Updated \"%s\"." % (progress, total_files, outputfile))
+            old_metadata = ds.GetMetadata()
+            
+            ds.SetMetadata(my_metadata)
+            del ds
+            print("%d/%d Updated \"%s\"." % (progress, total_files, file))
+            updated += 1
 
     print("Errors:", errors)
     for e in error_msg:
         print(e)
 
+    print("Converted %d Copied %d Updated %d" % (converted, copied, updated))
     print("Completed.")
 # That's all

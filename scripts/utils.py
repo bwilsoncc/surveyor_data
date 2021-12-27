@@ -1,4 +1,5 @@
 import os
+import numpy as np
 import pandas as pd
 from datetime import datetime
 
@@ -7,6 +8,7 @@ DEFAULT_IMAGETYPES = [
     'jpg',
     'pdf',
 ]
+
 
 def get_files(source, imagetypes=DEFAULT_IMAGETYPES):
     """
@@ -26,6 +28,7 @@ def get_files(source, imagetypes=DEFAULT_IMAGETYPES):
             else:
                 ignored.append(file)
     return matching, ignored
+
 
 def get_files_df(source, imagetypes=DEFAULT_IMAGETYPES):
     """
@@ -57,7 +60,9 @@ def get_files_df(source, imagetypes=DEFAULT_IMAGETYPES):
             d['lastmod'] = mtime
             d['is_doc_file'] = e in imagetypes
             l.append(d)
-    return pd.DataFrame().from_dict(l)
+    df = pd.DataFrame().from_dict(l)
+    print(df.info(verbose=True))
+    return df
 
 def get_ext_dict(files):
     """
@@ -71,6 +76,7 @@ def get_ext_dict(files):
         else:
             d[e] = 1
     return d
+
 
 if __name__ == "__main__":
     from config import Config
