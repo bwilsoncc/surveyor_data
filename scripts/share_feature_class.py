@@ -4,7 +4,19 @@ from arcgis.gis import GIS
 from urllib.parse import urlencode
 from config import Config
 
-def create_service_definition(aprx_map, service_type, sd_name, tags="", portal_folder="", server_folder="", overwrite=True):
+
+def find_map(aprx, map_name):
+    project = arcpy.mp.ArcGISProject(aprx)
+    maps = project.listMaps()
+    map = None
+    for item in maps:
+        if item.name == map_name:
+            return item
+    return None
+
+
+def create_service_definition(map, service_type, service_name, 
+        tags="", portal_folder="", server_folder="", copy_to_server=True):
     """ 
         Using a map from ArcGIS Pro project, 
         create a new sddraft file
@@ -17,39 +29,37 @@ def create_service_definition(aprx_map, service_type, sd_name, tags="", portal_f
 
         Returns: complete path for SD file or None
     """
-    path, name = os.path.split(sd_name)
-    service_name, ext = os.path.splitext(name)
-    sddraft_name = os.path.join(path, service_name + ".sddraft")
+    global tmp_path
+    sddraft_name = os.path.join(tmp_path, service_name + ".sddraft")
 
     arcpy.env.overwriteOutput = True
 
+    # I just want to publish the first layer, not the entire map.
+    # You can include a list of layers here, and then you can omit services or add some that aren't in the AGP map.
+    # Sample code https://pro.arcgis.com/en/pro-app/latest/arcpy/sharing/featuresharingdraft-class.htm#GUID-F529AD9A-B0D9-477A-9464-BB61F5747323
+    all_layers = map.listLayers()
+    selected_layers = [all_layers[0]]
+
     if service_type == 'MAP_IMAGE':
-        # "MAP IMAGE LAYER" -- This will include all the layers in the map.
         server_type = 'FEDERATED_SERVER' 
-        sddraft = aprx_map.getWebLayerSharingDraft(server_type, service_type, service_name)
+        # This fails if you pass it a list of layers. It's not supposed to...
+        sddraft = map.getWebLayerSharingDraft(server_type, service_type, service_name)
         sddraft.federatedServerUrl = Config.SERVER_URL # REQUIRED!!
-    else: 
-        # service_type = 'FEATURE'
-        # "FEATURE SHARING" -- This will include all the layers in the map.
-        # You can include a list of layers here, and then you can omit services or add some that aren't in the AGP map.
-        # sample code https://pro.arcgis.com/en/pro-app/latest/arcpy/sharing/featuresharingdraft-class.htm#GUID-F529AD9A-B0D9-477A-9464-BB61F5747323
-        server_type = 'HOSTED_SERVER'
-
-        # I just want to publish the first layer, not the entire map.
-        all_layers = aprx_map.listLayers()
-        selected_layer = all_layers[0]
-
-        sddraft = aprx_map.getWebLayerSharingDraft(server_type, service_type, service_name, [selected_layer])
+    elif service_type == 'FEATURE':
+        server_type = 'HOSTING_SERVER'
+        sddraft = map.getWebLayerSharingDraft(server_type, service_type, service_name, selected_layers)
+    else:
+        raise Exception("Huh? service_type = %s" % service_type)
 
     # All these are optional
-    sddraft.overwriteExistingService = overwrite
+    sddraft.overwriteExistingService = True
     sddraft.portalFolder = portal_folder
     sddraft.serverFolder = server_folder 
     sddraft.summary = ''
     sddraft.tags = tags
     sddraft.credits = ''
     sddraft.description = ''
-    sddraft.copyDataToServer = True
+    sddraft.copyDataToServer = copy_to_server
     #sddraft.offline = False
     #sddraft.useLimitations = False
 
@@ -58,13 +68,14 @@ def create_service_definition(aprx_map, service_type, sd_name, tags="", portal_f
 
     # This uses the sddraft and writes the *.sd file.
     try:
-        print("Building sdfile \"%s\"." % sd_name)
-        arcpy.server.StageService(sddraft_name, sd_name)
+        sd_name = os.path.join(tmp_path, service_name + '.sd')
+        result = arcpy.server.StageService(sddraft_name, sd_name)
     except Exception as e:
         print("Staging failed:", e)
-        return False
+        return None
 
-    return True
+    return sd_name
+
 
 def update_service_definition(gis, sd, service_name):
     try:
@@ -76,26 +87,73 @@ def update_service_definition(gis, sd, service_name):
         print("Overwriting service…")
         fs = sd.publish(overwrite=True)
     except Exception as e:
-        print("Could not overwrite \"%s\"." % sd_name, e)
+        print("Could not overwrite \"%s\"." % sd, e)
         return None
     try:
         if shrOrg or shrEveryone or shrGroups:
             print("Setting sharing options…")
             fs.share(org=shrOrg, everyone=shrEveryone, groups=shrGroups)
     except Exception as e:
-        print("Could set permissions for \"%s\"." % service_name, e)
+        print("Could not set permissions for \"%s\"." % service_name, e)
         return None
-    print("Finished updating: {} – ID: {}".format(fs.title, fs.id))
+    print("Finished updating: {} ID: {}".format(fs.title, fs.id))
     return fs.title
+
+
+def publish(map, service_name, service_type, copy=True):
+    global tmp_path, ags_file
+    rval = False
+
+    print("Searching server for SD to overwrite. \"%s\" on portal…" % service_name)
+    # This protects other users' content
+    query = "{} AND owner:{}".format(service_name, Config.PORTAL_USER)   
+    existing_sd = None
+    try:
+        existing_sd = gis.content.search(query, item_type="Service Definition")[0]
+        print("Found SD: {}, ID: {} Uploading and overwriting…".format(
+            existing_sd.title, existing_sd.id))
+    except Exception as e:
+        print("No service definition matched \"%s\". Creating a new one." % query, e)
+    if existing_sd:
+        update_service_definition(gis, existing_sd, service_name)
+        print("Service definition has been updated.")
+        rval = True
+        return rval
+
+    tags = "Clatsop County, Public Works, Surveys"
+    sd_file = create_service_definition(map, service_type, service_name, tags,
+                                portal_folder, server_folder,
+                                copy_to_server=copy)
+
+    print("Uploading service definition")
+    # Upload the service definition to SERVER
+    # In theory everything needed to publish the service is already in the SD file.
+    # https://pro.arcgis.com/en/pro-app/latest/tool-reference/server/upload-service-definition.htm
+    # You can override permissions, ownership, groups here too.
+    try:
+        msg = arcpy.server.UploadServiceDefinition(
+            sd_file, ags_file, in_startupType="STARTED")
+        # in_startupType HAS TO BE "STARTED" else no service is started on the SERVER.
+        n = 0
+        for m in msg:
+            if m:
+                print(n, m)
+            n += 1
+        rval = True
+    except Exception as e:
+        print("Upload failed.", e)
+            
+    return rval
 
 
 if __name__ == "__main__":
 
-    prj_path  = "K:/webmaps/basemap/basemap.aprx"
-    ags_file = "K:/webmaps/Basemap_PRO/server (publisher).ags"
-    map_name = "Surveys"
+    prj_path = "K:/webmaps/basemap/basemap.aprx"
+    ags_file = "K:/webmaps/basemap/server (publisher).ags"
 
-    service_name = "Surveys"
+    assert os.path.exists(prj_path)
+    assert os.path.exists(ags_file)
+
     webmap_name = 'Surveys PopUp Test'
     share_org = True
     share_everyone = True
@@ -106,68 +164,22 @@ if __name__ == "__main__":
 
     tmp_path = 'C:\\temp'
 
-    # Find the map we want in the ArcGIS Pro project.
-    project = arcpy.mp.ArcGISProject(prj_path)
-    maps = project.listMaps()
-    map = None
-    for item in maps:
-        if item.name == map_name:
-            map = item
-            break
-
     # Sign in to arcgis and to arcpy
     arcpy.SignInToPortal(Config.PORTAL_URL, Config.PORTAL_USER, Config.PORTAL_PASSWORD)
     gis = GIS(Config.PORTAL_URL, Config.PORTAL_USER, Config.PORTAL_PASSWORD)
 
+    # Find the map we want in the ArcGIS Pro project.
+    map_name = "Surveys"
+    map = find_map(prj_path, map_name)
     if not map:
-        map_names = [map.name for map in maps]
-        #print('\n'.join(map_names))
-        print("All these did I search, and yet found nothing!", '\n'.join(map_names))
         sys.exit("No map \"%s\" found in %s" % (map_name, prj_path))
 
-    print("Searching for SD to overwrite. \"%s\" on portal…" % service_name)
-    query = "{} AND owner:{}".format(service_name, Config.PORTAL_USER) # This protects other users' content
-    existing_sd = None
-    try:
-        existing_sd = gis.content.search(query, item_type="Service Definition")[0]
-        print("Found SD: {}, ID: {} Uploading and overwriting…".format(existing_sd.title, existing_sd.id))
-    except Exception as e:
-        print("No service definition matched \"%s\". Creating a new one." % query, e)
+    publish(map, 'Surveys_HOSTED_MIL', 'MAP_IMAGE', copy=True)
+    publish(map, 'Surveys_HOSTED_FEATURES', 'FEATURE', copy=True)
 
-    overwrite = False
-    sd_name = os.path.join(tmp_path, service_name + '.sd')
-    
-    service_type = "FEATURE"
-
-    if overwrite or not os.path.exists(sd_name):
-        tags = "Clatsop County, Public Works, Surveys"
-        create_service_definition(map, service_type, sd_name, tags, 
-            portal_folder, server_folder, 
-            overwrite=(existing_sd!=None))
-
-    # I think updating when possible might preserve the GUID on the Portal?
-    if existing_sd:
-        update_service_definition(gis, existing_sd, service_name)
-        print("Service definition has been updated.")
-    else:
-        print("Uploading service definition")
-        # Upload the service definition to SERVER 
-        # In theory everything needed to publish the service is already in the SD file.
-        # https://pro.arcgis.com/en/pro-app/latest/tool-reference/server/upload-service-definition.htm
-        # You can override permissions, ownership, groups here too.
-        try:
-            msg = arcpy.server.UploadServiceDefinition(sd_name, ags_file, in_startupType="STARTED")
-            # in_startupType HAS TO BE "STARTED" else no service is started on the SERVER.
-            n = 0
-            for m in msg:
-                if m: print(n, m)
-                n += 1
-        except Exception as e:
-            print("Upload failed.", e)
-    
-    service = Config.SERVER_URL + '/rest/services/' 
-    if server_folder:
-        service += server_folder + "/"
-    service += service_name + '/MapServer'
-    print("Map Image published successfully - ", service)
-
+# The data for the first layer in map has to be registered for this to work.
+    map_name = "Surveys_Registered"
+    map = find_map(prj_path, map_name)
+    if not map:
+        sys.exit("No map \"%s\" found in %s" % (map_name, prj_path))
+    publish(map, 'Surveys_MIL', 'MAP_IMAGE', copy=False)
