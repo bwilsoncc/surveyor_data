@@ -5,6 +5,9 @@
 		},
 		{
 			"path": "..\\arcgis_tools"
+		},
+		{
+			"path": "..\\..\\..\\..\\..\\TEMP"
 		}
 	],
 	"settings": {}
