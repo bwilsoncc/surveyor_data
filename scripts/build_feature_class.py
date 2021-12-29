@@ -184,7 +184,7 @@ def make_hyperlinks_df(dsurveys):
             d['SURVEY%02d' % link_count] = name
             d['HYPERLINK%02d' % link_count] = requote_uri(Config.SURVEYS_URL + baselink + '.pdf')
         maxlink = max(maxlink, link_count)
-        d['HYPERLINKS'] = maxlink
+        d['HYPERLINKS'] = link_count
         surveys.append(d)
 
     return pd.DataFrame.from_dict(surveys)
