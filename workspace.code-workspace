@@ -1,14 +1,16 @@
 {
 	"folders": [
 		{
-			"path": "."
+			"path": "..\\react-bootstrap-test"
 		},
 		{
-			"path": "..\\arcgis_tools"
+			"path": "..\\react-arcgis"
 		},
 		{
-			"path": "..\\..\\..\\..\\..\\TEMP"
+			"path": "..\\arcgis-react"
 		}
 	],
-	"settings": {}
+	"settings": {
+		"liveServer.settings.multiRootWorkspaceName": "arcgis-js-api-test"
+	}
 }

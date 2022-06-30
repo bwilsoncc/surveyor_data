@@ -1,24 +1,45 @@
-=surveyor_data
+# surveyor_data
 
 ## Overview
 
-I want all survey documents to show up in PDF format in our web applications.
-They exist in various formats including TIFF, JPEG, and PDF right now.
+Create new workflow for publishing survey documents.
 
-This project will pull them all into a unified PDF format.
-It also writes a bit of metadata to each PDF file.
+Old workflow
 
-Once that's done, I will need to update links to point to the new files.
+1 Public Works (aka PW) scans surveys and puts them on the server.
+2 PW creates new polygons in 'surveys'.
+3 GIS runs a Powershell (Create_pathname_table2019.ps1) that
 
-The scripts/ folder contains the Python code
+* finds new or changed files on the server and updates a database.
+* uses that database to update a table
 
-## History
+4 PW links entries in the table to the polygons
+
+Potential new workflow
+
+1. PW scans new surveys and puts them on the server
+2. PW updates old surveys (possibly)
+3. PW creates a polygon for each new survey, with a matching name
+4. PW invokes an update via a web page (that has openlayers map in it)
+
+* walks file system and updates the surveyImages table (as a microservice) build_feature_class.py
+* generates a new hyperlinked_surveys and publishes it
+* shows the file in openlayers as it is updated
+
+## Sub-project: convert all old scans to PDF format (completed)
 
 2021-12-16 Final run of scripts to create finished files.
 
-## Method
+The older scans were in various formats including TIFF, JPEG, and PDF right now.
 
-I ended up using two passes, first I try to use ImageMagick 
+After converting them all to PDF,
+I had to generate a script that would build a new service for WebMaps.
+
+The scripts/ folder contains the Python code
+
+### Method
+
+I ended up using two passes, first I try to use ImageMagick
 to convert files to PDF because generally it produced smaller files.
 
 Then I wanted to write some metadata and the easiest way was using GDAL.
@@ -26,15 +47,9 @@ Then I wanted to write some metadata and the easiest way was using GDAL.
 Since a few files could not be converted in the first pass, there
 is also some code to try to convert those files with GDAL.
 
-## Failure to set up (Linux only)
+### Set up on Windows
 
-I tried doing all processing on Linux because I could use graphicsmagick and the pgmagick python module there.
-I gave up eventually because graphicsmagick and GDAL can't install in one conda environment.
-Then I needed arcpy to access some Esri things and that is a total loss on Linux. It's hopelessly broken.
-
-Hence I deleted the instructions for Linux. Press on.
-
-## Set up on Windows
+(I needed ArcPy and could not get it to run on Linux. So I used Windows.)
 
 I had to install the full Windows ImageMagick package and I made sure "magick" is on the command PATH
 so in convert_image_files.py, it can just call magick via subprocess.
@@ -43,9 +58,9 @@ Using magick in a conda module did not work.
 Every attempt today at creating a clean environment failed today. (11/5/21)
 Falling back to cloning. Geez.
 
-I have to have separate environments on Windows, one for Esri and one for GDAL.
+I have to have separate Conda environments on Windows, one for Esri and one for GDAL.
 
-FIXME: TODAY 12/21/21 I could not use the 'surveys' but the one for 'arcgis_tools' worked. ?? 
+FIXME: TODAY 12/21/21 I could not use the 'surveys' but the one for 'arcgis_tools' worked. ??
 
 ```bash
 conda update --all
@@ -67,13 +82,13 @@ conda activate gdal
 conda install autopep8 ipykernel
 ```
 
-## Source image files
+### Source image files
 
-My image files are all currently found in 
+My image files are all currently found in
 /cifs/cc-files01/Applications/SurveyorData/survey/Scanned\ Surveys/AA_INDEXED_SURVEYS
 so I just set that in scripts/config.py.
 
-## Workflow
+### Workflow
 
 1 Set conda environment to 'magick'
 

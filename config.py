@@ -16,6 +16,8 @@ class Config(object):
     PORTAL_URL      = "https://delta.co.clatsop.or.us/portal"
     PORTAL_USER     = os.environ.get("PORTAL_USER")
     PORTAL_PASSWORD = os.environ.get("PORTAL_PASSWORD")
+    PORTAL_APP_ID   = os.environ.get("PORTAL_APP_ID")
+    PORTAL_APP_SECRET = os.environ.get("PORTAL_APP_SECRET")
     SERVER_URL      = "https://delta.co.clatsop.or.us/server"
 
     SDE_CONNECTION = "K:/webmaps/basemap/cc-gis.sde"
@@ -29,3 +31,5 @@ class Config(object):
 
 assert(len(Config.PORTAL_USER))
 assert(len(Config.PORTAL_PASSWORD))
+assert(len(Config.PORTAL_APP_ID))
+assert(len(Config.PORTAL_APP_SECRET))
