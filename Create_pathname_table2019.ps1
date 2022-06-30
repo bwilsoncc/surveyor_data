@@ -1,7 +1,10 @@
+# You have to install the dbatools module for this to work
+# In an admin PS, try "Install-Module dbatools"
 import-module dbatools
+
 #Variable setup
 $directory = "\\clatsop.co.clatsop.or.us\data\Applications\SurveyorData\survey\Scanned Surveys\AA_INDEXED_SURVEYS" #Path\Directory to recursively search
-$instance = "cc-gis"
+$instance = "cc-thesql"
 $database = "Clatsop"
  
 #don't edit the following variables
